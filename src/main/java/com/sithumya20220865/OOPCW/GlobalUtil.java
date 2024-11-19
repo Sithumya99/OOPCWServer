@@ -2,12 +2,15 @@ package com.sithumya20220865.OOPCW;
 
 import com.mongodb.client.MongoDatabase;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 @Component
 public class GlobalUtil {
 
     private static GlobalDatabase globalDatabase;
+    private static Ticketpool ticketpool;
 
     @Autowired
     public GlobalUtil(GlobalDatabase globalDatabase) {
@@ -27,5 +30,13 @@ public class GlobalUtil {
 
     public static void initializeDatabase() {
         globalDatabase.initialize();
+    }
+
+    public static Ticketpool getTicketpool() {
+        return ticketpool;
+    }
+
+    public static void setTicketpool(Ticketpool ticketpool) {
+        GlobalUtil.ticketpool = ticketpool;
     }
 }

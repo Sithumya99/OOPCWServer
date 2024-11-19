@@ -5,30 +5,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "vendors")
-public class Vendor{
+@Document(collection = "admins")
+public class Admin {
 
     @Id
     private String id; // Unique identifier for the Customer
     private String userId; // Reference to the User document
-    private int totalTickets;
 
-    public Vendor(String userId) { this.userId = userId;}
+    public Admin(String userId) {this.userId = userId;}
 
-    public int getTotalTickets() {
-        return totalTickets;
-    }
-
-    public void setTotalTickets(int totalTickets) {
-        this.totalTickets = totalTickets;
-    }
-
-    public ObjectNode writeVendor(User user) {
+    public ObjectNode writeAdmin(User user) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode response = mapper.createObjectNode();
         response.put("username", user.getUsername());
         response.put("role", user.getUserRole().toString());
-        response.put("totalTickets", getTotalTickets());
         return response;
     }
 }
