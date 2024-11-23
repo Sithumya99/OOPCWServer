@@ -6,10 +6,18 @@ import org.springframework.http.ResponseEntity;
 public class HandleStopSessionUtil {
 
     private Message message;
+    private JWTService jwtService;
 
-    public HandleStopSessionUtil(Message message) {this.message = message;}
+    public HandleStopSessionUtil(Message message, JWTService jwtService) {
+        this.message = message;
+        this.jwtService = jwtService;
+    }
 
     public ResponseEntity<?> execute() {
+
+        if (!jwtService.getRole(message.getUserAuth().getCredentials().toString()).equalsIgnoreCase("ROLE_Admin")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Only Admin can start a session");
+        }
 
         //terminate session
         if (SessionConfiguration.getInstance() == null) {

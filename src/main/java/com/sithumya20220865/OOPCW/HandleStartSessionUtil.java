@@ -14,8 +14,13 @@ public class HandleStartSessionUtil {
     }
 
     public ResponseEntity<?> execute() {
+        System.out.println("start session process: start");
         try {
-            System.out.println("start session: start");
+
+            if (!jwtService.getRole(message.getUserAuth().getCredentials().toString()).equalsIgnoreCase("ROLE_Admin")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Only Admin can start a session");
+            }
+
             //get configuration properties
             int totalTickets = message.getInt("totalTickets");
             int ticketReleaseRate = message.getInt("ticketReleaseRate");
@@ -32,12 +37,10 @@ public class HandleStartSessionUtil {
             GlobalUtil.setTicketpool(new Ticketpool(maxTicketCapacity));
             System.out.println("ticket pool: " + GlobalUtil.getTicketpool());
 
-            System.out.println("token in msg: " + message.getUserAuth().getCredentials());
-            System.out.println("token exp: " + jwtService.validateToken(message.getUserAuth().getCredentials().toString()));
-
             String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Admin");
             System.out.println("new token: " + newToken);
 
+            System.out.println("start session process: end");
             return ResponseEntity.status(HttpStatus.OK)
                     .header("Authorization", "Bearer " + newToken)
                     .body("Session started successfully");

@@ -95,7 +95,8 @@ public class MessageServerService {
                 return newSession.execute();
             } else if ("stopsession".equalsIgnoreCase(message.getCommand())) {
                 //stop ticket session
-                HandleStopSessionUtil stopSession = new HandleStopSessionUtil(message);
+                System.out.println("stop session process: start");
+                HandleStopSessionUtil stopSession = new HandleStopSessionUtil(message, jwtService);
                 return stopSession.execute();
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Unknown command");
