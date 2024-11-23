@@ -10,13 +10,14 @@ import org.springframework.stereotype.Component;
 public class GlobalUtil {
 
     private static GlobalDatabase globalDatabase;
-    private static Ticketpool ticketpool;
+    private static Ticketpool ticketpool;  //global ticket pool
 
     @Autowired
     public GlobalUtil(GlobalDatabase globalDatabase) {
         GlobalUtil.globalDatabase = globalDatabase;
     }
 
+    //start server
     public static void serverSetupJob() {
         try {
             // Initialize the database connection

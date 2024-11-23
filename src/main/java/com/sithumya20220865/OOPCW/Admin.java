@@ -14,11 +14,12 @@ public class Admin {
 
     public Admin(String userId) {this.userId = userId;}
 
-    public ObjectNode writeAdmin(User user) {
+    public ObjectNode writeAdmin(User user, String token) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode response = mapper.createObjectNode();
         response.put("username", user.getUsername());
         response.put("role", user.getUserRole().toString());
+        response.put("token", token);
         return response;
     }
 }

@@ -15,24 +15,28 @@ public class GlobalDatabase {
     private final String databaseName;
     private MongoDatabase database;
 
+    //extract and assign connection variables
     public GlobalDatabase(@Value("${spring.data.mongodb.uri}") String connectionString,
                           @Value("${spring.data.mongodb.database}") String databaseName) {
         this.connectionString = connectionString;
         this.databaseName = databaseName;
     }
 
+    //connect to database
     public synchronized void initialize() {
         if (this.database != null) {
             System.out.println("Database already initialized");
             return;
         }
         try {
+            //connect to mongodb atlas
             MongoClient mongoClient = MongoClients.create(
                     MongoClientSettings.builder()
                             .applyConnectionString( new com.mongodb.ConnectionString(connectionString))
                             .build()
             );
             this.database = mongoClient.getDatabase(databaseName);
+
             System.out.println("Database connection success.");
         } catch (Exception e) {
             System.out.println("Database connection failed.");

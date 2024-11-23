@@ -27,12 +27,13 @@ public class Customer{
         this.noOfTicketsBought = noOfTicketsBought;
     }
 
-    public ObjectNode writeCustomer(User user) {
+    public ObjectNode writeCustomer(User user, String token) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode response = mapper.createObjectNode();
         response.put("username", user.getUsername());
         response.put("role", user.getUserRole().toString());
         response.put("noOfTicketsBought", getNoOfTicketsBought());
+        response.put("token", token);
         return response;
     }
 }

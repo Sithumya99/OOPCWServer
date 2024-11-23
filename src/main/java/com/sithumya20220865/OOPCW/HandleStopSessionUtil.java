@@ -10,8 +10,6 @@ public class HandleStopSessionUtil {
     public HandleStopSessionUtil(Message message) {this.message = message;}
 
     public ResponseEntity<?> execute() {
-        //authenticate user
-        //TODO: using tokens for authentication
 
         //terminate session
         if (SessionConfiguration.getInstance() == null) {

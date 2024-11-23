@@ -6,12 +6,17 @@ import org.springframework.http.ResponseEntity;
 
 public class HandleRegisterUserUtil {
 
-    @Autowired
-    private RepositoryService repositoryService;
+    private RepositoryService repositoryService;  //access to all repositories
+
+    private JWTService jwtService;
 
     private Message message;
 
-    public HandleRegisterUserUtil(Message message) { this.message = message;}
+    public HandleRegisterUserUtil(Message message, RepositoryService repositoryService, JWTService jwtService) {
+        this.message = message;
+        this.repositoryService = repositoryService;
+        this.jwtService = jwtService;
+    }
 
     //method for registering new users
     public ResponseEntity<?> execute() {
@@ -35,18 +40,24 @@ public class HandleRegisterUserUtil {
                     Customer newCustomer = new Customer(newUser.getId());
                     newCustomer.setNoOfTicketsBought(0);
                     repositoryService.getCustomerRepository().save(newCustomer);
-                    return ResponseEntity.ok(newCustomer.writeCustomer(newUser));
+                    //generate JWT token
+                    String token = jwtService.generateToken(newUser.getUsername(), "Customer");
+                    return ResponseEntity.ok(newCustomer.writeCustomer(newUser, token));
                 }
                 case Vendor -> {
                     Vendor newVendor = new Vendor(newUser.getId());
                     newVendor.setTotalTickets(0);
                     repositoryService.getVendorRepository().save(newVendor);
-                    return ResponseEntity.ok(newVendor.writeVendor(newUser));
+                    //generate JWT token
+                    String token = jwtService.generateToken(newUser.getUsername(), "Vendor");
+                    return ResponseEntity.ok(newVendor.writeVendor(newUser, token));
                 }
                 case Admin -> {
                     Admin newAdmin = new Admin(newUser.getId());
                     repositoryService.getAdminRepository().save(newAdmin);
-                    return ResponseEntity.ok(newAdmin.writeAdmin(newUser));
+                    //generate JWT token
+                    String token = jwtService.generateToken(newUser.getUsername(), "Admin");
+                    return ResponseEntity.ok(newAdmin.writeAdmin(newUser, token));
                 }
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user role.");

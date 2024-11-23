@@ -23,12 +23,13 @@ public class Vendor{
         this.totalTickets = totalTickets;
     }
 
-    public ObjectNode writeVendor(User user) {
+    public ObjectNode writeVendor(User user, String token) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode response = mapper.createObjectNode();
         response.put("username", user.getUsername());
         response.put("role", user.getUserRole().toString());
         response.put("totalTickets", getTotalTickets());
+        response.put("token", token);
         return response;
     }
 }
