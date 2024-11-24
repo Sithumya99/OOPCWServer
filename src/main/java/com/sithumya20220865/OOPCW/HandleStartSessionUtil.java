@@ -8,9 +8,15 @@ public class HandleStartSessionUtil {
     private Message message;
     private JWTService jwtService;
 
-    public HandleStartSessionUtil(Message message, JWTService jwtService) {
+    private TicketWebSocketHandler ticketWebSocketHandler;
+    private TicketPoolService ticketPoolService;
+
+    public HandleStartSessionUtil(Message message, JWTService jwtService,
+                                  TicketWebSocketHandler ticketWebSocketHandler, TicketPoolService ticketPoolService) {
         this.message = message;
         this.jwtService = jwtService;
+        this.ticketWebSocketHandler = ticketWebSocketHandler;
+        this.ticketPoolService = ticketPoolService;
     }
 
     public ResponseEntity<?> execute() {
@@ -35,7 +41,11 @@ public class HandleStartSessionUtil {
             System.out.println("start ticketpool init");
             //initialize global ticket pool
             GlobalUtil.setTicketpool(new Ticketpool(maxTicketCapacity));
+            ticketPoolService.startSession();
             System.out.println("ticket pool: " + GlobalUtil.getTicketpool());
+
+            //notify clients ticket pool initiated
+            ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_START");
 
             String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Admin");
             System.out.println("new token: " + newToken);

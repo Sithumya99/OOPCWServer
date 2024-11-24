@@ -7,10 +7,15 @@ public class HandleStopSessionUtil {
 
     private Message message;
     private JWTService jwtService;
+    private TicketWebSocketHandler ticketWebSocketHandler;
+    private TicketPoolService ticketPoolService;
 
-    public HandleStopSessionUtil(Message message, JWTService jwtService) {
+    public HandleStopSessionUtil(Message message, JWTService jwtService,
+                                 TicketWebSocketHandler ticketWebSocketHandler, TicketPoolService ticketPoolService) {
         this.message = message;
         this.jwtService = jwtService;
+        this.ticketWebSocketHandler = ticketWebSocketHandler;
+        this.ticketPoolService = ticketPoolService;
     }
 
     public ResponseEntity<?> execute() {
@@ -23,9 +28,15 @@ public class HandleStopSessionUtil {
         if (SessionConfiguration.getInstance() == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No session to terminate");
         } else {
+            //terminate session
             SessionConfiguration.reset();
+            ticketPoolService.stopSession();
+            GlobalUtil.getTicketpool().getTickets().clear();
             GlobalUtil.setTicketpool(null);
-            //terminate ticket release scheduler
+
+            //notify clients ticketpool stopped
+            ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_STOP");
+
             return ResponseEntity.status(HttpStatus.OK).body("Session terminated successfully");
         }
     }

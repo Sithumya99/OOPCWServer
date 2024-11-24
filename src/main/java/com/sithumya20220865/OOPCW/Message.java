@@ -46,6 +46,16 @@ public class Message {
         return jsonNode.has(property) ? jsonNode.get(property).asText() : null;
     }
 
+    public boolean getBoolean(String property) throws Exception {
+        JsonNode jsonNode = getJsonData();
+        return jsonNode.get(property).asBoolean(false);
+    }
+
+    public double getDouble(String property) throws Exception {
+        JsonNode jsonNode = getJsonData();
+        return jsonNode.has(property) ? jsonNode.get(property).asDouble() : -1;
+    }
+
     public CompletableFuture<ResponseEntity<?>> getResponse() {
         return response;
     }

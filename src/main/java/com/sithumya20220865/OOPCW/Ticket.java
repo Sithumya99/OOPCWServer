@@ -6,8 +6,22 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "tickets")
 public class Ticket {
     @Id
-    private Long id;
+    private String id;
     private String eventName;
     private double price;
     private boolean isSold;
+
+    public Ticket(String eventName, double price) {
+        this.eventName = eventName;
+        this.price = price;
+        this.isSold = false;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setSold(boolean sold) {
+        isSold = sold;
+    }
 }

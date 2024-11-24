@@ -4,13 +4,11 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,7 +22,13 @@ public class MessageServerService {
     private JWTService jwtService;  //for token generation
 
     @Autowired
-    private MessageQueueService messageQueueService;
+    private MessageQueueService messageQueueService; //message queue for consumer
+
+    @Autowired
+    private TicketPoolService ticketPoolService;  //for adding and removing tickets
+
+    @Autowired
+    private TicketWebSocketHandler ticketWebSocketHandler;  //handle changes in ticketpool for websockets
 
     private final ExecutorService threadPool = Executors.newFixedThreadPool(10);
 
@@ -57,9 +61,9 @@ public class MessageServerService {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-//                        finally {
-//                            SecurityContextHolder.clearContext();
-//                        }
+                        finally {
+                            SecurityContextHolder.clearContext();
+                        }
                     });
 
                 } catch (InterruptedException e) {
@@ -91,13 +95,17 @@ public class MessageServerService {
                 return loginUser.execute();
             } else if ("startsession".equalsIgnoreCase(message.getCommand())) {
                 //start ticket session
-                HandleStartSessionUtil newSession = new HandleStartSessionUtil(message, jwtService);
+                HandleStartSessionUtil newSession = new HandleStartSessionUtil(message, jwtService, ticketWebSocketHandler, ticketPoolService);
                 return newSession.execute();
             } else if ("stopsession".equalsIgnoreCase(message.getCommand())) {
                 //stop ticket session
                 System.out.println("stop session process: start");
-                HandleStopSessionUtil stopSession = new HandleStopSessionUtil(message, jwtService);
+                HandleStopSessionUtil stopSession = new HandleStopSessionUtil(message, jwtService, ticketWebSocketHandler, ticketPoolService);
                 return stopSession.execute();
+            } else if ("addTicket".equalsIgnoreCase(message.getCommand())) {
+                //add ticket
+                HandleAddTicketUtil addNewTicket = new HandleAddTicketUtil(message, repositoryService, jwtService, ticketPoolService);
+                return addNewTicket.execute();
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Unknown command");
 

@@ -10,14 +10,17 @@ public class RepositoryService {
     private final CustomerRepository customerRepository;
     private final VendorRepository vendorRepository;
     private final AdminRepository adminRepository;
+    private final TicketRepository ticketRepository;
 
     @Autowired
     public RepositoryService(UserRepository userRepository, CustomerRepository customerRepository,
-                             VendorRepository vendorRepository, AdminRepository adminRepository) {
+                             VendorRepository vendorRepository, AdminRepository adminRepository,
+                             TicketRepository ticketRepository) {
         this.userRepository = userRepository;
         this.customerRepository = customerRepository;
         this.vendorRepository = vendorRepository;
         this.adminRepository = adminRepository;
+        this.ticketRepository = ticketRepository;
     }
 
     public UserRepository getUserRepository() {
@@ -34,5 +37,9 @@ public class RepositoryService {
 
     public AdminRepository getAdminRepository() {
         return adminRepository;
+    }
+
+    public TicketRepository getTicketRepository() {
+        return ticketRepository;
     }
 }

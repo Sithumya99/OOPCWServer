@@ -15,4 +15,20 @@ public class Ticketpool {
         this.tickets = new LinkedBlockingDeque<>(maxCapacity);
     }
 
+    public boolean addTicket(Ticket ticket) {
+        try {
+            tickets.put(ticket.getId());
+            return true;
+        } catch (InterruptedException e) {
+            return false;
+        }
+    }
+
+    public boolean removeTicket(Ticket ticket) {
+        return tickets.remove(ticket.getId());
+    }
+
+    public BlockingDeque<String> getTickets() {
+        return tickets;
+    }
 }
