@@ -24,4 +24,6 @@ public class Ticket {
     public void setSold(boolean sold) {
         isSold = sold;
     }
+
+    public boolean getSold() {return isSold;}
 }

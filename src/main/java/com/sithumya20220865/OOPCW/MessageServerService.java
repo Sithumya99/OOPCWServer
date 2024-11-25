@@ -102,10 +102,13 @@ public class MessageServerService {
                 System.out.println("stop session process: start");
                 HandleStopSessionUtil stopSession = new HandleStopSessionUtil(message, jwtService, ticketWebSocketHandler, ticketPoolService);
                 return stopSession.execute();
-            } else if ("addTicket".equalsIgnoreCase(message.getCommand())) {
+            } else if ("addticket".equalsIgnoreCase(message.getCommand())) {
                 //add ticket
                 HandleAddTicketUtil addNewTicket = new HandleAddTicketUtil(message, repositoryService, jwtService, ticketPoolService);
                 return addNewTicket.execute();
+            } else if ("buyticket".equalsIgnoreCase(message.getCommand())) {
+                HandleBuyTicketUtil buyTicket = new HandleBuyTicketUtil(message, repositoryService, jwtService, ticketPoolService);
+                return buyTicket.execute();
             }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Unknown command");
 
