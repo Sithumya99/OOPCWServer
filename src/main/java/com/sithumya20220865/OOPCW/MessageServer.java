@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -22,10 +23,34 @@ public class MessageServer {
     @Autowired
     private JwtAuthenticationService jwtAuthenticationService;
 
+    @Autowired
+    private TicketPoolService ticketPoolService;  //for reading tickets
+
     //handle all incoming post requests
     @PostMapping("/{command}")
     public CompletableFuture<ResponseEntity<?>> executeCommandPost(
             @PathVariable String command, @RequestBody String body, HttpServletRequest request) {
+        System.out.println("start msg server");
+        return addTask(command, body, request);
+    }
+
+    //handle all incoming get requests
+    @GetMapping("/{command}")
+    public CompletableFuture<ResponseEntity<?>> executeCommandGet(
+            @PathVariable String command, @RequestBody String body, HttpServletRequest request) {
+        if (SessionConfiguration.getInstance() == null) {
+            return CompletableFuture.completedFuture(
+                    ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("Ticket session is not active"));
+        } else {
+            ArrayList<Ticket> tickets = new ArrayList<>();
+            ticketPoolService.writeTicketPool(tickets);
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.OK)
+                    .body(tickets));
+        }
+    }
+
+    private CompletableFuture<ResponseEntity<?>> addTask(String command, String body, HttpServletRequest request) {
         try {
             Authentication currentAuth = null;
             //create response object

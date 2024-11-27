@@ -47,7 +47,7 @@ public class HandleLoginUserUtil {
                     if (vendor != null) {
                         //generate JWT token
                         String token = jwtService.generateToken(username, "Vendor");
-                        return ResponseEntity.status(HttpStatus.OK).body(vendor.writeVendor(user, token));
+                        return ResponseEntity.status(HttpStatus.OK).body(vendor.writeVendor(user, token, repositoryService));
                     } else {
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Couldn't retrieve vendor information");
                     }

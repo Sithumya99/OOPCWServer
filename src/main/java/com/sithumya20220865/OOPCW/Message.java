@@ -15,7 +15,6 @@ public class Message {
     private CompletableFuture<ResponseEntity<?>> response;  //final response after completing request
     private Authentication userAuth;
 
-    private HttpStatus status;
 
     public Message(String command, String data, CompletableFuture<ResponseEntity<?>> response, Authentication auth) {
         this.command = command;
@@ -60,21 +59,8 @@ public class Message {
         return response;
     }
 
-    public void setResponse(String response) {
-        System.out.println("msg resp: " + response);
-        System.out.println("res ent: " + ResponseEntity.status(status).body(response));
-        this.response = CompletableFuture.completedFuture(ResponseEntity.status(status).body(response));
-    }
-
-    public void setResponse(ObjectNode response) {
-        this.response = CompletableFuture.completedFuture(ResponseEntity.status(status).body(response));
-    }
-
     public Authentication getUserAuth() {
         return userAuth;
     }
 
-    public void setStatus(HttpStatus status) {
-        this.status = status;
-    }
 }

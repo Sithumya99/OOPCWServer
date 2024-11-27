@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -113,6 +114,14 @@ public class TicketPoolService {
             System.out.println("Failed to buy ticket: " + ticket.getId());
             e.printStackTrace();
             return false;
+        }
+    }
+
+    public void writeTicketPool(ArrayList<Ticket> ticketsList) {
+        for (String ticketId: GlobalUtil.getTicketpool().getTickets()) {
+            Ticket ticket = repositoryService.getTicketRepository().findById(ticketId)
+                    .orElseThrow(() -> new RuntimeException("Ticket does not exist."));
+            ticketsList.add(ticket);
         }
     }
 

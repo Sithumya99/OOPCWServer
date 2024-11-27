@@ -8,6 +8,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
@@ -21,6 +26,14 @@ public class SecurityConfig {
     }
 
     @Bean
+    public HttpFirewall allowUrlWithDoubleSlashes() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        // Relax the firewall settings to allow double slashes in the URL
+        firewall.setAllowUrlEncodedDoubleSlash(true);
+        return firewall;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity htttp) throws Exception {
         return htttp
                 .csrf(customizer -> customizer.disable())
@@ -30,7 +43,22 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.addAllowedOriginPattern("http://localhost:*"); // Allow all origins
+        configuration.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
+        configuration.addAllowedHeader("*"); // Allow all headers
+        configuration.setAllowCredentials(true); // Allow credentials (cookies, authorization headers)
+
+        // Apply CORS configuration to all endpoints
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration); // Apply CORS to all routes
+        return source;
     }
 
 }

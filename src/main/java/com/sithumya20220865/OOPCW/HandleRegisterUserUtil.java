@@ -50,7 +50,7 @@ public class HandleRegisterUserUtil {
                     repositoryService.getVendorRepository().save(newVendor);
                     //generate JWT token
                     String token = jwtService.generateToken(newUser.getUsername(), "Vendor");
-                    return ResponseEntity.ok(newVendor.writeVendor(newUser, token));
+                    return ResponseEntity.ok(newVendor.writeVendor(newUser, token, repositoryService));
                 }
                 case Admin -> {
                     Admin newAdmin = new Admin(newUser.getId());

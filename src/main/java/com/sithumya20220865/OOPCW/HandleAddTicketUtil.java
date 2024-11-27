@@ -38,7 +38,16 @@ public class HandleAddTicketUtil {
             //get ticket properties from request
             String eventName = message.getString("eventName");
             double price = message.getDouble("price");
-            Ticket newTicket = new Ticket(eventName, price);
+
+            //get vendor id
+            User user = repositoryService.getUserRepository().findByUsername(message.getUserAuth().getPrincipal().toString());
+            Vendor vendor = repositoryService.getVendorRepository().findByUserId(user.getId());
+            String vendorId = vendor.getId();
+            vendor.setTotalTickets(vendor.getTotalTickets() + 1);
+
+            //create new ticket
+            Ticket newTicket = new Ticket(eventName, price, vendorId);
+            System.out.println("Created new ticket: " + newTicket);
 
             System.out.println("Create new ticket: " + newTicket);
             //save ticket
