@@ -3,12 +3,6 @@ package com.sithumya20220865.OOPCW;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-enum Role {
-    Customer,
-    Vendor,
-    Admin
-}
-
 @Document(collection = "users")
 public class User {
 
@@ -16,7 +10,7 @@ public class User {
     private String id;
     protected String username;
     protected String password;
-    protected Role userRole;
+    protected String userRole;
 
     public User() {}
 
@@ -40,11 +34,11 @@ public class User {
         this.password = password;
     }
 
-    public Role getUserRole() {
+    public String getUserRole() {
         return userRole;
     }
 
-    public void setUserRole(Role userRole) {
+    public void setUserRole(String userRole) {
         this.userRole = userRole;
     }
 
@@ -52,8 +46,7 @@ public class User {
         try {
             this.username = message.getString("username");
             this.password = message.getString("password");
-            String role = message.getString("role");
-            this.userRole = Role.valueOf(role.substring(0, 1).toUpperCase() + role.substring(1).toLowerCase());
+            this.userRole = message.getString("role");
         } catch (Exception e) {
             throw e;
         }

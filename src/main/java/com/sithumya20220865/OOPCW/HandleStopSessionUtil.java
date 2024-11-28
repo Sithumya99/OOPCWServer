@@ -19,14 +19,26 @@ public class HandleStopSessionUtil {
     }
 
     public ResponseEntity<?> execute() {
+        GlobalLogger.logInfo("Start: Stop session process => ", message);
 
-        if (!jwtService.getRole(message.getUserAuth().getCredentials().toString()).equalsIgnoreCase("ROLE_Admin")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Only Admin can start a session");
+        //authorize user
+        String role = jwtService.getRole(message.getUserAuth().getCredentials().toString());
+        if (!role.equalsIgnoreCase("ROLE_Admin")) {
+            GlobalLogger.logError("Unauthorized: ",
+                    new UserUnauthorizedException(message.getUserAuth().getPrincipal().toString(), role));
+            GlobalLogger.logInfo("Stop: Stop session process => ", message);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
+                    .body("Only Admin can start a session");
         }
 
         //terminate session
         if (SessionConfiguration.getInstance() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No session to terminate");
+            GlobalLogger.logWarning("No session to terminate.");
+            GlobalLogger.logInfo("Stop: Stop session process => ", message);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
+                    .body("No session to terminate");
         } else {
             //terminate session
             SessionConfiguration.reset();
@@ -37,7 +49,12 @@ public class HandleStopSessionUtil {
             //notify clients ticketpool stopped
             ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_STOP");
 
-            return ResponseEntity.status(HttpStatus.OK).body("Session terminated successfully");
+            GlobalLogger.logInfo("Session terminated successfully", message);
+            GlobalLogger.logInfo("Stop: Stop session process => ", message);
+            String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Admin");
+            return ResponseEntity.status(HttpStatus.OK)
+                    .header("Authorization", "Bearer " + newToken)
+                    .body("Session terminated successfully");
         }
     }
 }

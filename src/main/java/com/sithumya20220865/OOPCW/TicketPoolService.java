@@ -7,6 +7,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -24,7 +25,7 @@ public class TicketPoolService {
     private RepositoryService repositoryService;
 
     @Autowired
-    private TicketWebSocketHandler ticketWebSocketHandler;  //handle changes in ticketpool for websockets
+    private TicketWebSocketHandler ticketWebSocketHandler;  //handle changes in ticket pool for websockets
 
     private volatile boolean isActive = true;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
@@ -48,6 +49,8 @@ public class TicketPoolService {
             threadPoolTaskExecutor.submit(() -> {
                 try {
                     while (isActive) {
+                        GlobalLogger.logInfo("Start: Add ticket to pool process => ", ticket);
+
                         //add ticket it ticket pool
                         GlobalUtil.getTicketpool().addTicket(ticket);
                         ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_CHANGED");
@@ -55,13 +58,14 @@ public class TicketPoolService {
                     }
 
                     if (!isActive) {
-                        System.out.println("Ticket pool is inactive");
+                        GlobalLogger.logWarning("Ticket pool inactive");
                     }
 
                 } catch (Exception e) {
                     Thread.currentThread().interrupt();
-                    e.printStackTrace();
-                    System.out.println("Failed to add ticket: " + e.getMessage());
+                    GlobalLogger.logError("Failed to add ticket to pool: ", e);
+                } finally {
+                    GlobalLogger.logInfo("Stop: Add ticket to pool process => ", ticket);
                 }
             });
         }, 0, SessionConfiguration.getInstance().getTicketReleaseRate(), TimeUnit.MILLISECONDS);
@@ -74,11 +78,12 @@ public class TicketPoolService {
      * @return true if the ticket was purchased successfully, false otherwise.
      */
     public boolean buyTicketToTask(Ticket ticket) {
+        GlobalLogger.logInfo("Start: Buy ticket to task process => ", ticket);
         try {
             return threadPoolTaskExecutor.submit(() -> {
                 synchronized (lock) {
                     if (!isActive) {
-                        System.out.println("Ticket pool is inactive");
+                        GlobalLogger.logWarning("Ticket pool inactive");
                         return false;
                     } else {
                         return removeTicket(ticket);
@@ -86,34 +91,31 @@ public class TicketPoolService {
                 }
             }).get();
         } catch (Exception e) {
-            System.out.println("Failed process: buyTicketToTask");
-            e.printStackTrace();
+            GlobalLogger.logError("Failed buy ticket: ", e);
             return false;
+        } finally {
+            GlobalLogger.logInfo("Stop: Buy ticket to task process =>", ticket);
         }
     }
 
     private boolean removeTicket(Ticket ticket) {
+        GlobalLogger.logInfo("Start: Purchase ticket process => ", ticket);
         try {
-            if (ticket == null) {
-                System.out.println("Ticket: " + ticket.getId() + " not found");
-                return false;
-            }
             if (GlobalUtil.getTicketpool().removeTicket(ticket)) {
                 //set ticket to sold
                 ticket.setSold(true);
                 repositoryService.getTicketRepository().save(ticket);
 
-                System.out.println("Ticket: " + ticket.getId() + " purchased successfully");
+                GlobalLogger.logInfo("Ticket purchased successfully: ", ticket);
                 ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_CHANGED");
                 return true;
-            } else {
-                System.out.println("Failed to purchase ticket: " + ticket.getId());
-                return false;
             }
+            throw new RuntimeException("Failed to purchase ticket");
         } catch (Exception e) {
-            System.out.println("Failed to buy ticket: " + ticket.getId());
-            e.printStackTrace();
+            GlobalLogger.logError("Failed to purchase ticket: ", e);
             return false;
+        } finally {
+            GlobalLogger.logInfo("Stop: Purchase ticket process => ", ticket);
         }
     }
 
@@ -122,6 +124,13 @@ public class TicketPoolService {
             Ticket ticket = repositoryService.getTicketRepository().findById(ticketId)
                     .orElseThrow(() -> new RuntimeException("Ticket does not exist."));
             ticketsList.add(ticket);
+        }
+    }
+
+    public void addUnsoldTickets() {
+        List<Ticket> ticketList = repositoryService.getTicketRepository().findByIsSold(false);
+        for (Ticket ticket: ticketList) {
+            addTicketsToTask(ticket);
         }
     }
 

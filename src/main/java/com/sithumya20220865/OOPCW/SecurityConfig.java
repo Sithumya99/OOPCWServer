@@ -28,7 +28,7 @@ public class SecurityConfig {
     @Bean
     public HttpFirewall allowUrlWithDoubleSlashes() {
         StrictHttpFirewall firewall = new StrictHttpFirewall();
-        // Relax the firewall settings to allow double slashes in the URL
+        //Set firewall settings to allow double slashes in the URL
         firewall.setAllowUrlEncodedDoubleSlash(true);
         return firewall;
     }
@@ -51,13 +51,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOriginPattern("http://localhost:*"); // Allow all origins
-        configuration.addAllowedMethod("*"); // Allow all HTTP methods (GET, POST, etc.)
+        configuration.addAllowedMethod("*"); // Allow all HTTP methods
         configuration.addAllowedHeader("*"); // Allow all headers
-        configuration.setAllowCredentials(true); // Allow credentials (cookies, authorization headers)
+        configuration.setAllowCredentials(true); // Allow credentials
 
-        // Apply CORS configuration to all endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // Apply CORS to all routes
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 

@@ -20,11 +20,16 @@ public class HandleStartSessionUtil {
     }
 
     public ResponseEntity<?> execute() {
-        System.out.println("start session process: start");
+        GlobalLogger.logInfo("Start: Start session process => ", message);
         try {
-
-            if (!jwtService.getRole(message.getUserAuth().getCredentials().toString()).equalsIgnoreCase("ROLE_Admin")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Only Admin can start a session");
+            //authorize use
+            String role = jwtService.getRole(message.getUserAuth().getCredentials().toString());
+            if (!role.equalsIgnoreCase("ROLE_Admin")) {
+                GlobalLogger.logError("Unauthorized: ",
+                        new UserUnauthorizedException(message.getUserAuth().getPrincipal().toString(), role));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
+                        .body("Only Admin can start a session");
             }
 
             //get configuration properties
@@ -33,31 +38,35 @@ public class HandleStartSessionUtil {
             int customerRetrievalRate = message.getInt("customerRetrievalRate");
             int maxTicketCapacity = message.getInt("maxTicketCapacity");
 
-            System.out.println("start config init");
             //initialize global configuration
             SessionConfiguration.initialize(totalTickets, ticketReleaseRate, customerRetrievalRate, maxTicketCapacity);
-            System.out.println("finish config init");
+            GlobalLogger.logInfo("Configuration initialized: ", message);
 
-            System.out.println("start ticketpool init");
             //initialize global ticket pool
             GlobalUtil.setTicketpool(new Ticketpool(maxTicketCapacity));
             ticketPoolService.startSession();
-            System.out.println("ticket pool: " + GlobalUtil.getTicketpool());
+            GlobalLogger.logInfo("Ticket pool initialized: ", message);
+
+            //add unsold tickets
+            ticketPoolService.addUnsoldTickets();
 
             //notify clients ticket pool initiated
             ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_START");
 
             String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Admin");
-            System.out.println("new token: " + newToken);
 
-            System.out.println("start session process: end");
+            GlobalLogger.logInfo("Start session completed successfully", message);
             return ResponseEntity.status(HttpStatus.OK)
                     .header("Authorization", "Bearer " + newToken)
                     .body("Session started successfully");
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
+            GlobalLogger.logError("Failed start session: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
+                    .body("Server error: " + e.getMessage());
+        } finally {
+            GlobalLogger.logInfo("Stop: Start session process => ", message);
         }
     }
 }

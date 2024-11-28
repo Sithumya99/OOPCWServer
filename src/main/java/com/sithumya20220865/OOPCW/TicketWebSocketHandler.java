@@ -16,13 +16,13 @@ public class TicketWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        System.out.println("New web socket connection: " + session);
+        GlobalLogger.logInfo("New websocket session: ", session);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session);
-        System.out.println("Remove web socket connection: " + session);
+        GlobalLogger.logInfo("Remove websocket session: ", session);
     }
 
     /**

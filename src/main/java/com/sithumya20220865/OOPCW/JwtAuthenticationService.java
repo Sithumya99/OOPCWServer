@@ -23,23 +23,19 @@ public class JwtAuthenticationService {
     public Authentication authenticate(HttpServletRequest request) {
         //get authorization header
         String authorizationHeader = request.getHeader("Authorization");
-        System.out.println("authenticate auth header: " + authorizationHeader);
 
         //get token from header
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String token = authorizationHeader.substring(7);
-            System.out.println("Authorization token: " + token);
 
             //validate token
             if (jwtService.validateToken(token)) {
                 //extract user details
                 String user = jwtService.getUsername(token);
-                System.out.println("Authorization user: " + user);
 
                 //get roles
                 List<SimpleGrantedAuthority> authorities = List.of(
                         new SimpleGrantedAuthority(jwtService.getRole(token)));
-                System.out.println("Authorization user roles: " + authorities);
 
                 //new authentication object
                 return new UsernamePasswordAuthenticationToken(user, token, authorities);

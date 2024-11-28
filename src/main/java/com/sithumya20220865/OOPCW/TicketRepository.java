@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface TicketRepository extends MongoRepository<Ticket, String> {
     List<Ticket> findByVendorId(String vendorId);
+    List<Ticket> findByIsSold(boolean isSold);
 }

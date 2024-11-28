@@ -20,6 +20,7 @@ public class HandleRegisterUserUtil {
 
     //method for registering new users
     public ResponseEntity<?> execute() {
+        GlobalLogger.logInfo("Start: Register new user process => ", message);
         User newUser = new User();
 
         try {
@@ -28,42 +29,50 @@ public class HandleRegisterUserUtil {
 
             //check if username already exists
             if (repositoryService.getUserRepository().findByUsername(newUser.getUsername()) != null) {
+                GlobalLogger.logWarning("Username already exists " + newUser.getUsername());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists");
             }
 
             //save new user
             repositoryService.getUserRepository().save(newUser);
+            GlobalLogger.logInfo("New user registered successfully: ", newUser);
 
             //create role relevant document
             switch (newUser.userRole) {
-                case Customer -> {
+                case "Customer" -> {
                     Customer newCustomer = new Customer(newUser.getId());
                     newCustomer.setNoOfTicketsBought(0);
                     repositoryService.getCustomerRepository().save(newCustomer);
                     //generate JWT token
                     String token = jwtService.generateToken(newUser.getUsername(), "Customer");
+                    GlobalLogger.logInfo("Customer registered successfully: ", newCustomer);
                     return ResponseEntity.ok(newCustomer.writeCustomer(newUser, token));
                 }
-                case Vendor -> {
+                case "Vendor" -> {
                     Vendor newVendor = new Vendor(newUser.getId());
                     newVendor.setTotalTickets(0);
                     repositoryService.getVendorRepository().save(newVendor);
                     //generate JWT token
                     String token = jwtService.generateToken(newUser.getUsername(), "Vendor");
+                    GlobalLogger.logInfo("Vendor registered successfully: ", newVendor);
                     return ResponseEntity.ok(newVendor.writeVendor(newUser, token, repositoryService));
                 }
-                case Admin -> {
+                case "Admin" -> {
                     Admin newAdmin = new Admin(newUser.getId());
                     repositoryService.getAdminRepository().save(newAdmin);
                     //generate JWT token
                     String token = jwtService.generateToken(newUser.getUsername(), "Admin");
+                    GlobalLogger.logInfo("Admin registered successfully: ", newAdmin);
                     return ResponseEntity.ok(newAdmin.writeAdmin(newUser, token));
                 }
             }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid user role.");
+            throw new InvalidUserRoleException(newUser.userRole);
 
         } catch (Exception e) {
+            GlobalLogger.logError("Failed to register user: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
+        } finally {
+            GlobalLogger.logInfo("Stop: Register new user process => ", message);
         }
     }
 }

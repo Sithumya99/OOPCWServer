@@ -36,10 +36,12 @@ public class MessageServerService {
     public void startExecutingQueue() {
         //thread to retrieve and execute tasks from queue
         Thread taskThread = new Thread(() -> {
+            GlobalLogger.logInfo("Start: Listening to queue", null);
             while (true) {
                 try {
                     // Dequeue tasks from the queue
                     Message task = messageQueueService.dequeue();
+                    GlobalLogger.logInfo("Start new task: ", task);
 
                     // Submit the task to the thread pool
                     threadPool.submit(() -> {
@@ -59,19 +61,20 @@ public class MessageServerService {
                                 task.getResponse().complete(finalResponse);
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            throw e;
                         }
                         finally {
+                            GlobalLogger.logInfo("Task finished: ", task);
                             SecurityContextHolder.clearContext();
                         }
                     });
 
                 } catch (InterruptedException e) {
-                    System.out.println("Dispatcher thread interrupted.");
+                    GlobalLogger.logError("Dispatcher thread interrupted", e);
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    GlobalLogger.logError("Error in task: ", ex);
                 }
             }
         });
@@ -83,7 +86,7 @@ public class MessageServerService {
 
     public ResponseEntity<?> executeCommandService(Message message) {
         try {
-            System.out.println("process sec cont: " + SecurityContextHolder.getContext().getAuthentication());
+            GlobalLogger.logInfo("Start executing: ", message);
             //process message
             if ("register".equalsIgnoreCase(message.getCommand())) {
                 //register new user
@@ -110,12 +113,14 @@ public class MessageServerService {
                 HandleBuyTicketUtil buyTicket = new HandleBuyTicketUtil(message, repositoryService, jwtService, ticketPoolService);
                 return buyTicket.execute();
             }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Unknown command");
+            throw new RuntimeException("Unknown command");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            GlobalLogger.logError("Failed to execute message: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error handling request: " + e.getMessage());
+        } finally {
+            GlobalLogger.logInfo("Stop executing message: ", message);
         }
     }
 }

@@ -19,10 +19,13 @@ public class HandleAddTicketUtil {
     }
 
     public ResponseEntity<?> execute() {
-        System.out.println("Add ticket: start");
+        GlobalLogger.logInfo("Start: Add Ticket process => ", message);
         try {
             //check access
-            if (!jwtService.getRole(message.getUserAuth().getCredentials().toString()).equalsIgnoreCase("ROLE_Vendor")) {
+            String role = jwtService.getRole(message.getUserAuth().getCredentials().toString());
+            if (!role.equalsIgnoreCase("ROLE_Vendor")) {
+                GlobalLogger.logError("Unauthorized: ",
+                        new UserUnauthorizedException(message.getUserAuth().getPrincipal().toString(), role));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
                         .body("Only Vendor can add tickets");
@@ -30,6 +33,7 @@ public class HandleAddTicketUtil {
 
             //check configuration
             if (SessionConfiguration.getInstance() == null) {
+                GlobalLogger.logWarning("Bad_Request: Session not configured.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
                         .body("Start a session to add tickets.");
@@ -47,9 +51,8 @@ public class HandleAddTicketUtil {
 
             //create new ticket
             Ticket newTicket = new Ticket(eventName, price, vendorId);
-            System.out.println("Created new ticket: " + newTicket);
+            GlobalLogger.logInfo("Create new ticket: ", newTicket);
 
-            System.out.println("Create new ticket: " + newTicket);
             //save ticket
             repositoryService.getTicketRepository().save(newTicket);
 
@@ -58,14 +61,18 @@ public class HandleAddTicketUtil {
 
             //return success response with new token
             String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Vendor");
+            GlobalLogger.logInfo("Add ticket completed successfully: ", message);
             return ResponseEntity.status(HttpStatus.OK)
                     .header("Authorization", "Bearer " + newToken)
                     .body("Ticket added successfully");
 
         } catch (Exception e) {
+            GlobalLogger.logError("Failed to add ticket: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
                     .body("Failed to add ticket.");
+        } finally {
+            GlobalLogger.logInfo("Stop: Add ticket process => ", message);
         }
     }
 }

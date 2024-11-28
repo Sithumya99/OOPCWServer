@@ -19,10 +19,13 @@ public class HandleBuyTicketUtil {
     }
 
     public ResponseEntity<?> execute() {
-        System.out.println("Buy ticket process: start");
+        GlobalLogger.logInfo("Start: Buy ticket process => ", message);
         try {
             //check access
-            if (!jwtService.getRole(message.getUserAuth().getCredentials().toString()).equalsIgnoreCase("ROLE_Customer")) {
+            String role = jwtService.getRole(message.getUserAuth().getCredentials().toString());
+            if (!role.equalsIgnoreCase("ROLE_Customer")) {
+                GlobalLogger.logError("Unauthorized: ",
+                        new UserUnauthorizedException(message.getUserAuth().getPrincipal().toString(), role));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
                         .body("Only Customers can buy tickets");
@@ -30,18 +33,21 @@ public class HandleBuyTicketUtil {
 
             //check configuration
             if (SessionConfiguration.getInstance() == null) {
+                GlobalLogger.logWarning("Bad_Request: Session not configured.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
                         .body("Start a session to add tickets.");
             }
 
-            //get ticket Id from request
+            //get ticketId from request
             String id = message.getString("ticketId");
             Ticket ticket = repositoryService.getTicketRepository().findById(id)
                     .orElseThrow(() -> new RuntimeException("Ticket does not exist."));
+            GlobalLogger.logInfo("Retrieve ticket: ", ticket);
 
             //check if ticket sold
             if (ticket.getSold()) {
+                GlobalLogger.logWarning("Ticket already sold.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
                         .body("Ticket already sold.");
@@ -50,20 +56,21 @@ public class HandleBuyTicketUtil {
             //remove ticket from ticket pool
             if (ticketPoolService.buyTicketToTask(ticket)) {
                 String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Customer");
+                GlobalLogger.logInfo("Buy ticket completed successfully: ", message);
                 return ResponseEntity.status(HttpStatus.OK)
                         .header("Authorization", "Bearer " + newToken)
                         .body("Ticket bought successfully");
             } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                        .body("Failed to buy ticket.");
+                throw new FailedBuyTicketException("Failed to buy ticket.");
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            GlobalLogger.logError("Failed: Buy ticket process => ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                    .body("Failed to buy ticket.");
+                    .body("Server error: " + e.getMessage());
+        } finally {
+            GlobalLogger.logInfo("Stop: Buy ticket process => ", message);
         }
     }
 }

@@ -3,6 +3,8 @@ package com.sithumya20220865.OOPCW;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class GlobalUtil {
 
@@ -19,9 +21,9 @@ public class GlobalUtil {
         try {
             // Initialize the database connection
             GlobalUtil.initializeDatabase();
-            System.out.println("Server Started Successfully.");
-        } catch (RuntimeException e) {
-            System.err.println("Server failed to start: " + e.getMessage());
+            GlobalLogger.logInfo("Server started successfully", null);
+        } catch (Exception e) {
+            GlobalLogger.logError("Server failed to start", e);
             System.exit(1);
         }
     }

@@ -1,7 +1,6 @@
 package com.sithumya20220865.OOPCW;
 
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoTimeoutException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
@@ -25,7 +24,7 @@ public class GlobalDatabase {
     //connect to database
     public synchronized void initialize() {
         if (this.database != null) {
-            System.out.println("Database already initialized");
+            GlobalLogger.logWarning("Database already initialized.");
             return;
         }
         try {
@@ -37,16 +36,17 @@ public class GlobalDatabase {
             );
             this.database = mongoClient.getDatabase(databaseName);
 
-            System.out.println("Database connection success.");
+            GlobalLogger.logInfo("Database connected successfully", null);
         } catch (Exception e) {
-            System.out.println("Database connection failed.");
-            throw new RuntimeException("Database Initialization failed", e);
+            DatabaseConnectionFailedException dbExp = new DatabaseConnectionFailedException(e.getMessage());
+            GlobalLogger.logError("Error occurred", dbExp);
+            throw dbExp;
         }
     }
 
     public MongoDatabase getDatabase() {
         if (database == null) {
-            throw new IllegalStateException("Database not initialized");
+            throw new IllegalStateException("Cannot retrieve Global database: Database not initialized");
         }
         return database;
     }

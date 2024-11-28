@@ -30,12 +30,9 @@ public class JWTService {
     public boolean validateToken(String token) {
         try {
             //validating created token
-            System.out.println("start validating");
             Jwts.parser().setSigningKey(SECRET_KEY).build().parseSignedClaims(token);
-            System.out.println("success validation");
             return true;
         } catch (Exception e) {
-            System.out.println("fail validation");
             return false;
         }
     }

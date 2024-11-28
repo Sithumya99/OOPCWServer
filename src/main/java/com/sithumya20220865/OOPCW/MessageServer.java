@@ -26,11 +26,17 @@ public class MessageServer {
     @Autowired
     private TicketPoolService ticketPoolService;  //for reading tickets
 
+    @Autowired
+    private JWTService jwtService; //for JWT tokens
+
+    @Autowired
+    private RepositoryService repositoryService; //accessing mongodb repos
+
     //handle all incoming post requests
     @PostMapping("/{command}")
     public CompletableFuture<ResponseEntity<?>> executeCommandPost(
             @PathVariable String command, @RequestBody String body, HttpServletRequest request) {
-        System.out.println("start msg server");
+        GlobalLogger.logInfo("Receive request "+ command, null);
         return addTask(command, body, request);
     }
 
@@ -38,19 +44,40 @@ public class MessageServer {
     @GetMapping("/{command}")
     public CompletableFuture<ResponseEntity<?>> executeCommandGet(
             @PathVariable String command, @RequestBody String body, HttpServletRequest request) {
+        GlobalLogger.logInfo("Receive request "+ command, null);
+        Authentication currentAuth = jwtAuthenticationService.authenticate(request);
+        GlobalLogger.logInfo("Start: Get tickets process => ", currentAuth.getPrincipal());
+
+        if (currentAuth == null) {
+            GlobalLogger.logError("Unauthorized: ",
+                    new UserUnauthorizedException(currentAuth.getPrincipal().toString(), "no role"));
+            GlobalLogger.logInfo("Stop: Get tickets process ", null);
+            return CompletableFuture.completedFuture(
+                    ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body("Authorization failed."));
+        }
+
         if (SessionConfiguration.getInstance() == null) {
+            GlobalLogger.logWarning("Session not configured.");
+            GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
             return CompletableFuture.completedFuture(
                     ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .header("Authorization", "Bearer " + currentAuth.getCredentials())
                             .body("Ticket session is not active"));
         } else {
             ArrayList<Ticket> tickets = new ArrayList<>();
             ticketPoolService.writeTicketPool(tickets);
-            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.OK)
-                    .body(tickets));
+            GlobalLogger.logInfo("Get tickets completed successfully ", currentAuth.getPrincipal());
+            GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
+            return CompletableFuture.completedFuture(
+                    ResponseEntity.status(HttpStatus.OK)
+                            .header("Authorization", "Bearer " + currentAuth.getCredentials())
+                            .body(tickets));
         }
     }
 
     private CompletableFuture<ResponseEntity<?>> addTask(String command, String body, HttpServletRequest request) {
+        GlobalLogger.logInfo("Start: Add task process => ", null);
         try {
             Authentication currentAuth = null;
             //create response object
@@ -59,8 +86,9 @@ public class MessageServer {
             //authenticate request
             if (!"register".equalsIgnoreCase(command) && !"login".equalsIgnoreCase(command)) {
                 currentAuth = jwtAuthenticationService.authenticate(request);
-                System.out.println("authentocation in msg: " + currentAuth);
                 if (currentAuth == null) {
+                    GlobalLogger.logError("Unauthorized: ",
+                            new UserUnauthorizedException(currentAuth.getPrincipal().toString(), "no role"));
                     return CompletableFuture.completedFuture(
                             ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing token"));
                 }
@@ -68,31 +96,33 @@ public class MessageServer {
 
             if (currentAuth != null) {
                 //set authentication context
-                System.out.println("Authentication context before: " + SecurityContextHolder.getContext().getAuthentication());
                 SecurityContextHolder.getContext().setAuthentication(currentAuth);
-                System.out.println("Authentication context after: " + SecurityContextHolder.getContext().getAuthentication());
             }
 
             //create message object
             Message message = new Message(command, body, response, currentAuth);
+            GlobalLogger.logInfo("New message task created: ", message);
 
             //add to queue
             boolean enqueued = messageQueueService.enqueue(message);
 
             //return response
             if (!enqueued) {
+                GlobalLogger.logWarning("Queue is full, rejecting request");
                 return CompletableFuture.completedFuture(
                         ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Queue is full,try again later"));
             } else {
-                System.out.println("End security context: " + SecurityContextHolder.getContext().getAuthentication());
                 ResponseEntity<?> res = response.join();
+                GlobalLogger.logInfo("Task completed: ", message);
                 return CompletableFuture.completedFuture(res);
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            GlobalLogger.logError("Failed to add task: ", e);
             return CompletableFuture.completedFuture(
                     ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage()));
+        } finally {
+            GlobalLogger.logInfo("Stop: Add task process => ", null);
         }
     }
 
