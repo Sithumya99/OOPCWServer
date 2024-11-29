@@ -50,35 +50,41 @@ public class MessageServer {
     @GetMapping("/{command}")
     public CompletableFuture<ResponseEntity<?>> executeCommandGet(
             @PathVariable String command, @RequestBody String body, HttpServletRequest request) {
-        GlobalLogger.logInfo("Receive request "+ command, null);
-        Authentication currentAuth = jwtAuthenticationService.authenticate(request);
-        GlobalLogger.logInfo("Start: Get tickets process => ", currentAuth.getPrincipal());
+        if ("gettickets".equalsIgnoreCase(command)) {
+            GlobalLogger.logInfo("Receive request "+ command, null);
+            Authentication currentAuth = jwtAuthenticationService.authenticate(request);
+            GlobalLogger.logInfo("Start: Get tickets process => ", currentAuth.getPrincipal());
 
-        if (currentAuth == null) {
-            GlobalLogger.logError("Unauthorized: ",
-                    new UserUnauthorizedException(currentAuth.getPrincipal().toString(), "no role"));
-            GlobalLogger.logInfo("Stop: Get tickets process ", null);
-            return CompletableFuture.completedFuture(
-                    ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body("Authorization failed."));
-        }
+            if (currentAuth == null) {
+                GlobalLogger.logError("Unauthorized: ",
+                        new UserUnauthorizedException(currentAuth.getPrincipal().toString(), "no role"));
+                GlobalLogger.logInfo("Stop: Get tickets process ", null);
+                return CompletableFuture.completedFuture(
+                        ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                .body("Authorization failed."));
+            }
 
-        if (SessionConfiguration.getInstance() == null) {
-            GlobalLogger.logWarning("Session not configured.");
-            GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
+            if (SessionConfiguration.getInstance() == null) {
+                GlobalLogger.logWarning("Session not configured.");
+                GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
+                return CompletableFuture.completedFuture(
+                        ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .header("Authorization", "Bearer " + currentAuth.getCredentials())
+                                .body("Ticket session is not active"));
+            } else {
+                ArrayList<Ticket> tickets = new ArrayList<>();
+                ticketPoolService.writeTicketPool(tickets);
+                GlobalLogger.logInfo("Get tickets completed successfully ", currentAuth.getPrincipal());
+                GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
+                return CompletableFuture.completedFuture(
+                        ResponseEntity.status(HttpStatus.OK)
+                                .header("Authorization", "Bearer " + currentAuth.getCredentials())
+                                .body(tickets));
+            }
+        } else {
             return CompletableFuture.completedFuture(
                     ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .header("Authorization", "Bearer " + currentAuth.getCredentials())
-                            .body("Ticket session is not active"));
-        } else {
-            ArrayList<Ticket> tickets = new ArrayList<>();
-            ticketPoolService.writeTicketPool(tickets);
-            GlobalLogger.logInfo("Get tickets completed successfully ", currentAuth.getPrincipal());
-            GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
-            return CompletableFuture.completedFuture(
-                    ResponseEntity.status(HttpStatus.OK)
-                            .header("Authorization", "Bearer " + currentAuth.getCredentials())
-                            .body(tickets));
+                            .body("Invalid request"));
         }
     }
 

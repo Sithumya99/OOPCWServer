@@ -13,9 +13,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class TicketPoolService {
@@ -32,7 +35,7 @@ public class TicketPoolService {
 
     private volatile boolean isActive = true;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
-    private final Object lock = new Object();
+    private final ReentrantLock poolLock = new ReentrantLock();
 
     public void stopSession() {
         isActive = false;
@@ -48,30 +51,44 @@ public class TicketPoolService {
      * @param ticket new ticket to add to ticket pool.
      */
     public void addTicketsToTask(Ticket ticket) {
-        scheduler.scheduleAtFixedRate(() -> {
-            threadPoolTaskExecutor.submit(() -> {
-                try {
-                    while (isActive) {
-                        GlobalLogger.logInfo("Start: Add ticket to pool process => ", ticket);
+        Map<Ticket, Long> lastAddedTime = new ConcurrentHashMap<>();
+        threadPoolTaskExecutor.submit(() -> {
+            try {
+                while (isActive) {
+                    GlobalLogger.logInfo("Start: Add ticket to pool process => ", ticket);
+                    poolLock.lock();
 
-                        //add ticket it ticket pool
-                        GlobalUtil.getTicketpool().addTicket(ticket);
-                        ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_CHANGED");
-                        break;
+                    //check time elapsed since last ticket addition
+                    long curTime = System.currentTimeMillis();
+                    long lastItemAddedTime = lastAddedTime.getOrDefault(ticket, 0L);
+                    long timeElapsed = curTime - lastItemAddedTime;
+
+                    if (timeElapsed < SessionConfiguration.getInstance().getTicketReleaseRate()) {
+                        long waitTime = SessionConfiguration.getInstance().getTicketReleaseRate() - timeElapsed;
+                        GlobalLogger.logInfo("Waiting for ticket release rate to elapse: ", ticket);
+                        Thread.sleep(waitTime);
                     }
 
-                    if (!isActive) {
-                        GlobalLogger.logWarning("Ticket pool inactive");
-                    }
-
-                } catch (Exception e) {
-                    Thread.currentThread().interrupt();
-                    GlobalLogger.logError("Failed to add ticket to pool: ", e);
-                } finally {
-                    GlobalLogger.logInfo("Stop: Add ticket to pool process => ", ticket);
+                    //add ticket it ticket pool
+                    GlobalUtil.getTicketpool().addTicket(ticket);
+                    GlobalLogger.logInfo("Successfully added ticket: ", ticket);
+                    ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_CHANGED");
+                    lastAddedTime.put(ticket, System.currentTimeMillis());
+                    break;
                 }
-            });
-        }, 0, SessionConfiguration.getInstance().getTicketReleaseRate(), TimeUnit.MILLISECONDS);
+
+                if (!isActive) {
+                    GlobalLogger.logWarning("Ticket pool inactive");
+                }
+
+            } catch (Exception e) {
+                Thread.currentThread().interrupt();
+                GlobalLogger.logError("Failed to add ticket to pool: ", e);
+            } finally {
+                poolLock.unlock();
+                GlobalLogger.logInfo("Stop: Add ticket to pool process => ", ticket);
+            }
+        });
     }
 
     /**
@@ -83,14 +100,16 @@ public class TicketPoolService {
     public boolean buyTicketToTask(Ticket ticket) {
         GlobalLogger.logInfo("Start: Buy ticket to task process => ", ticket);
         try {
+            if (!isActive) {
+                GlobalLogger.logWarning("Ticket pool inactive");
+                return false;
+            }
             return threadPoolTaskExecutor.submit(() -> {
-                synchronized (lock) {
-                    if (!isActive) {
-                        GlobalLogger.logWarning("Ticket pool inactive");
-                        return false;
-                    } else {
-                        return removeTicket(ticket);
-                    }
+                poolLock.lock();
+                try {
+                    return removeTicket(ticket);
+                } finally {
+                    poolLock.unlock();
                 }
             }).get();
         } catch (Exception e) {
