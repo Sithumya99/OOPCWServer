@@ -2,6 +2,7 @@ package com.sithumya20220865.OOPCW.Models;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
@@ -59,6 +60,13 @@ public class Message {
 
     public Authentication getUserAuth() {
         return userAuth;
+    }
+
+    public ObjectNode writeResMsg(String message) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode res = objectMapper.createObjectNode();
+        res.put("message", message);
+        return res;
     }
 
 }

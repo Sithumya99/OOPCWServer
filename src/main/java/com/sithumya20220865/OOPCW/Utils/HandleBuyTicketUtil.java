@@ -34,7 +34,7 @@ public class HandleBuyTicketUtil {
                         new UserUnauthorizedException(message.getUserAuth().getPrincipal().toString(), role));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                        .body("Only Customers can buy tickets");
+                        .body(message.writeResMsg("Only Customers can buy tickets"));
             }
 
             //check configuration
@@ -42,7 +42,7 @@ public class HandleBuyTicketUtil {
                 GlobalLogger.logWarning("Bad_Request: Session not configured.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                        .body("Start a session to add tickets.");
+                        .body(message.writeResMsg("Start a session to buy tickets."));
             }
 
             //get ticketId from request
@@ -56,7 +56,7 @@ public class HandleBuyTicketUtil {
                 GlobalLogger.logWarning("Ticket already sold.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                        .body("Ticket already sold.");
+                        .body(message.writeResMsg("Ticket already sold."));
             }
 
             //remove ticket from ticket pool
@@ -65,7 +65,7 @@ public class HandleBuyTicketUtil {
                 GlobalLogger.logInfo("Buy ticket completed successfully: ", message);
                 return ResponseEntity.status(HttpStatus.OK)
                         .header("Authorization", "Bearer " + newToken)
-                        .body("Ticket bought successfully");
+                        .body(message.writeResMsg("Ticket bought successfully"));
             } else {
                 throw new FailedBuyTicketException("Failed to buy ticket.");
             }
@@ -74,7 +74,7 @@ public class HandleBuyTicketUtil {
             GlobalLogger.logError("Failed: Buy ticket process => ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                    .body("Server error: " + e.getMessage());
+                    .body(message.writeResMsg("Server error: " + e.getMessage()));
         } finally {
             GlobalLogger.logInfo("Stop: Buy ticket process => ", message);
         }

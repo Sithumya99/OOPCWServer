@@ -35,7 +35,7 @@ public class HandleStartSessionUtil {
                         new UserUnauthorizedException(message.getUserAuth().getPrincipal().toString(), role));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                        .body("Only Admin can start a session");
+                        .body(message.writeResMsg("Only Admin can start a session"));
             }
 
             //get configuration properties
@@ -64,13 +64,13 @@ public class HandleStartSessionUtil {
             GlobalLogger.logInfo("Start session completed successfully", message);
             return ResponseEntity.status(HttpStatus.OK)
                     .header("Authorization", "Bearer " + newToken)
-                    .body("Session started successfully");
+                    .body(message.writeResMsg("Session started successfully"));
 
         } catch (Exception e) {
             GlobalLogger.logError("Failed start session: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                    .body("Server error: " + e.getMessage());
+                    .body(message.writeResMsg("Server error: " + e.getMessage()));
         } finally {
             GlobalLogger.logInfo("Stop: Start session process => ", message);
         }

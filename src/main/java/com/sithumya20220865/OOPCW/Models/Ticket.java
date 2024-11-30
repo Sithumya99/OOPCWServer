@@ -39,6 +39,7 @@ public class Ticket {
     public boolean getSold() {return isSold;}
 
     public void writeTicket(ObjectNode ticketNode) {
+        ticketNode.put("ticketId", id);
         ticketNode.put("event", eventName);
         ticketNode.put("price", price);
         ticketNode.put("isSold", isSold);

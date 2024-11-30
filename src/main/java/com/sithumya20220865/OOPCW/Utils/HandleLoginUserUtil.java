@@ -1,5 +1,7 @@
 package com.sithumya20220865.OOPCW.Utils;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sithumya20220865.OOPCW.Configs.SessionConfiguration;
 import com.sithumya20220865.OOPCW.Models.*;
 import com.sithumya20220865.OOPCW.Services.*;
 import com.sithumya20220865.OOPCW.Logger.*;
@@ -34,7 +36,7 @@ public class HandleLoginUserUtil {
             if (user == null || !user.getPassword().equals(password)) {
                 GlobalLogger.logError("Unauthorized: Invalid credentials => ",
                         new UserUnauthorizedException(username, "no role"));
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(message.writeResMsg("Invalid credentials"));
             }
             GlobalLogger.logInfo("User authorized successfully: ", message);
 
@@ -46,7 +48,12 @@ public class HandleLoginUserUtil {
                         GlobalLogger.logInfo("Customer document found: ", customer);
                         //generate JWT token
                         String token = jwtService.generateToken(username, "Customer");
-                        return ResponseEntity.status(HttpStatus.OK).body(customer.writeCustomer(user, token));
+                        ObjectNode res = customer.writeCustomer(user, token);
+
+                        //write session started or not
+                        res.put("sessionActive", SessionConfiguration.getInstance() != null);
+
+                        return ResponseEntity.status(HttpStatus.OK).body(res);
                     }
                     break;
                 }
@@ -56,7 +63,12 @@ public class HandleLoginUserUtil {
                         GlobalLogger.logInfo("Vendor document found: ", vendor);
                         //generate JWT token
                         String token = jwtService.generateToken(username, "Vendor");
-                        return ResponseEntity.status(HttpStatus.OK).body(vendor.writeVendor(user, token, repositoryService));
+                        ObjectNode res = vendor.writeVendor(user, token, repositoryService);
+
+                        //write session started or not
+                        res.put("sessionActive", SessionConfiguration.getInstance() != null);
+
+                        return ResponseEntity.status(HttpStatus.OK).body(res);
                     }
                     break;
                 }
@@ -66,7 +78,12 @@ public class HandleLoginUserUtil {
                         GlobalLogger.logInfo("Admin document found: ", admin);
                         //generate JWT token
                         String token = jwtService.generateToken(username, "Admin");
-                        return ResponseEntity.status(HttpStatus.OK).body(admin.writeAdmin(user, token));
+                        ObjectNode res = admin.writeAdmin(user, token);
+
+                        //write session started or not
+                        res.put("sessionActive", SessionConfiguration.getInstance() != null);
+
+                        return ResponseEntity.status(HttpStatus.OK).body(res);
                     }
                     break;
                 }
@@ -76,7 +93,7 @@ public class HandleLoginUserUtil {
 
         } catch (Exception e) {
             GlobalLogger.logError("Failed to login user: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message.writeResMsg("Server error: " + e.getMessage()));
         } finally {
             GlobalLogger.logInfo("Stop: Login user process => ", message);
         }

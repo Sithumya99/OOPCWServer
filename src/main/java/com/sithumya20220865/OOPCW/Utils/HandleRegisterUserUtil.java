@@ -1,5 +1,7 @@
 package com.sithumya20220865.OOPCW.Utils;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sithumya20220865.OOPCW.Configs.SessionConfiguration;
 import com.sithumya20220865.OOPCW.Models.*;
 import com.sithumya20220865.OOPCW.Services.*;
 import com.sithumya20220865.OOPCW.Logger.*;
@@ -34,7 +36,7 @@ public class HandleRegisterUserUtil {
             //check if username already exists
             if (repositoryService.getUserRepository().findByUsername(newUser.getUsername()) != null) {
                 GlobalLogger.logWarning("Username already exists " + newUser.getUsername());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message.writeResMsg("Username already exists"));
             }
 
             //save new user
@@ -50,7 +52,13 @@ public class HandleRegisterUserUtil {
                     //generate JWT token
                     String token = jwtService.generateToken(newUser.getUsername(), "Customer");
                     GlobalLogger.logInfo("Customer registered successfully: ", newCustomer);
-                    return ResponseEntity.ok(newCustomer.writeCustomer(newUser, token));
+
+                    //write customer info
+                    ObjectNode res = newCustomer.writeCustomer(newUser, token);
+                    //write session started or not
+                    res.put("sessionActive", SessionConfiguration.getInstance() != null);
+
+                    return ResponseEntity.ok(res);
                 }
                 case "Vendor" -> {
                     Vendor newVendor = new Vendor(newUser.getId());
@@ -59,7 +67,13 @@ public class HandleRegisterUserUtil {
                     //generate JWT token
                     String token = jwtService.generateToken(newUser.getUsername(), "Vendor");
                     GlobalLogger.logInfo("Vendor registered successfully: ", newVendor);
-                    return ResponseEntity.ok(newVendor.writeVendor(newUser, token, repositoryService));
+
+                    //write vendor info
+                    ObjectNode res = newVendor.writeVendor(newUser, token, repositoryService);
+                    //write session started or not
+                    res.put("sessionActive", SessionConfiguration.getInstance() != null);
+
+                    return ResponseEntity.ok(res);
                 }
                 case "Admin" -> {
                     Admin newAdmin = new Admin(newUser.getId());
@@ -67,14 +81,20 @@ public class HandleRegisterUserUtil {
                     //generate JWT token
                     String token = jwtService.generateToken(newUser.getUsername(), "Admin");
                     GlobalLogger.logInfo("Admin registered successfully: ", newAdmin);
-                    return ResponseEntity.ok(newAdmin.writeAdmin(newUser, token));
+
+                    //write admin info
+                    ObjectNode res = newAdmin.writeAdmin(newUser, token);
+                    //write session started or not
+                    res.put("sessionActive", SessionConfiguration.getInstance() != null);
+
+                    return ResponseEntity.ok(res);
                 }
             }
             throw new InvalidUserRoleException(newUser.getUserRole());
 
         } catch (Exception e) {
             GlobalLogger.logError("Failed to register user: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Server error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message.writeResMsg("Server error: " + e.getMessage()));
         } finally {
             GlobalLogger.logInfo("Stop: Register new user process => ", message);
         }

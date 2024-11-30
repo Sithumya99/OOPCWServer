@@ -49,7 +49,7 @@ public class MessageServer {
     //handle all incoming get requests
     @GetMapping("/{command}")
     public CompletableFuture<ResponseEntity<?>> executeCommandGet(
-            @PathVariable String command, @RequestBody String body, HttpServletRequest request) {
+            @PathVariable String command, HttpServletRequest request) {
         if ("gettickets".equalsIgnoreCase(command)) {
             GlobalLogger.logInfo("Receive request "+ command, null);
             Authentication currentAuth = jwtAuthenticationService.authenticate(request);

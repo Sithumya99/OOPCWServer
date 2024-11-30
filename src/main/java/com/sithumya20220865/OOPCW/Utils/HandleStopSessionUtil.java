@@ -35,7 +35,7 @@ public class HandleStopSessionUtil {
             GlobalLogger.logInfo("Stop: Stop session process => ", message);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                    .body("Only Admin can start a session");
+                    .body(message.writeResMsg("Only Admin can start a session"));
         }
 
         //terminate session
@@ -44,7 +44,7 @@ public class HandleStopSessionUtil {
             GlobalLogger.logInfo("Stop: Stop session process => ", message);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                    .body("No session to terminate");
+                    .body(message.writeResMsg("No session to terminate"));
         } else {
             //terminate session
             SessionConfiguration.reset();
@@ -60,7 +60,7 @@ public class HandleStopSessionUtil {
             String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Admin");
             return ResponseEntity.status(HttpStatus.OK)
                     .header("Authorization", "Bearer " + newToken)
-                    .body("Session terminated successfully");
+                    .body(message.writeResMsg("Session terminated successfully"));
         }
     }
 }

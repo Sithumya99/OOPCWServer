@@ -34,7 +34,7 @@ public class HandleAddTicketUtil {
                         new UserUnauthorizedException(message.getUserAuth().getPrincipal().toString(), role));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                        .body("Only Vendor can add tickets");
+                        .body(message.writeResMsg("Only Vendor can add tickets"));
             }
 
             //check configuration
@@ -42,7 +42,7 @@ public class HandleAddTicketUtil {
                 GlobalLogger.logWarning("Bad_Request: Session not configured.");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                        .body("Start a session to add tickets.");
+                        .body(message.writeResMsg("Start a session to add tickets."));
             }
 
             //get ticket properties from request
@@ -70,13 +70,13 @@ public class HandleAddTicketUtil {
             GlobalLogger.logInfo("Add ticket completed successfully: ", message);
             return ResponseEntity.status(HttpStatus.OK)
                     .header("Authorization", "Bearer " + newToken)
-                    .body("Ticket added successfully");
+                    .body(message.writeResMsg("Ticket added successfully"));
 
         } catch (Exception e) {
             GlobalLogger.logError("Failed to add ticket: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .header("Authorization", "Bearer " + message.getUserAuth().getCredentials())
-                    .body("Failed to add ticket.");
+                    .body(message.writeResMsg("Failed to add ticket."));
         } finally {
             GlobalLogger.logInfo("Stop: Add ticket process => ", message);
         }
