@@ -1,5 +1,7 @@
 package com.sithumya20220865.OOPCW.Controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sithumya20220865.OOPCW.Services.*;
 import com.sithumya20220865.OOPCW.Logger.*;
 import com.sithumya20220865.OOPCW.Exceptions.*;
@@ -50,6 +52,10 @@ public class MessageServer {
     @GetMapping("/{command}")
     public CompletableFuture<ResponseEntity<?>> executeCommandGet(
             @PathVariable String command, HttpServletRequest request) {
+        //create response node
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode res = objectMapper.createObjectNode();
+
         if ("gettickets".equalsIgnoreCase(command)) {
             GlobalLogger.logInfo("Receive request "+ command, null);
             Authentication currentAuth = jwtAuthenticationService.authenticate(request);
@@ -59,18 +65,20 @@ public class MessageServer {
                 GlobalLogger.logError("Unauthorized: ",
                         new UserUnauthorizedException(currentAuth.getPrincipal().toString(), "no role"));
                 GlobalLogger.logInfo("Stop: Get tickets process ", null);
+                res.put("message", "Authorization failed.");
                 return CompletableFuture.completedFuture(
                         ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                .body("Authorization failed."));
+                                .body(res));
             }
 
             if (SessionConfiguration.getInstance() == null) {
                 GlobalLogger.logWarning("Session not configured.");
                 GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
+                res.put("message", "Ticket session is not active");
                 return CompletableFuture.completedFuture(
                         ResponseEntity.status(HttpStatus.BAD_REQUEST)
                                 .header("Authorization", "Bearer " + currentAuth.getCredentials())
-                                .body("Ticket session is not active"));
+                                .body(res));
             } else {
                 ArrayList<Ticket> tickets = new ArrayList<>();
                 ticketPoolService.writeTicketPool(tickets);
@@ -82,14 +90,19 @@ public class MessageServer {
                                 .body(tickets));
             }
         } else {
+            res.put("message", "Invalid request");
             return CompletableFuture.completedFuture(
                     ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body("Invalid request"));
+                            .body(res));
         }
     }
 
     private CompletableFuture<ResponseEntity<?>> addTask(String command, String body, HttpServletRequest request) {
         GlobalLogger.logInfo("Start: Add task process => ", null);
+        //create response node
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode res = objectMapper.createObjectNode();
+
         try {
             Authentication currentAuth = null;
             //create response object
@@ -101,8 +114,9 @@ public class MessageServer {
                 if (currentAuth == null) {
                     GlobalLogger.logError("Unauthorized: ",
                             new UserUnauthorizedException(currentAuth.getPrincipal().toString(), "no role"));
+                    res.put("message", "Invalid or missing token");
                     return CompletableFuture.completedFuture(
-                            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing token"));
+                            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(res));
                 }
             }
 
@@ -121,18 +135,20 @@ public class MessageServer {
             //return response
             if (!enqueued) {
                 GlobalLogger.logWarning("Queue is full, rejecting request");
+                res.put("message", "Queue is full,try again later");
                 return CompletableFuture.completedFuture(
-                        ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Queue is full,try again later"));
+                        ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(res));
             } else {
-                ResponseEntity<?> res = response.join();
+                ResponseEntity<?> resEnt = response.join();
                 GlobalLogger.logInfo("Task completed: ", message);
-                return CompletableFuture.completedFuture(res);
+                return CompletableFuture.completedFuture(resEnt);
             }
 
         } catch (Exception e) {
             GlobalLogger.logError("Failed to add task: ", e);
+            res.put("message", "Server error: " + e.getMessage());
             return CompletableFuture.completedFuture(
-                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage()));
+                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(res));
         } finally {
             GlobalLogger.logInfo("Stop: Add task process => ", null);
         }

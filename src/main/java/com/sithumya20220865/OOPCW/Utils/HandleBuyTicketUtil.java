@@ -60,7 +60,7 @@ public class HandleBuyTicketUtil {
             }
 
             //remove ticket from ticket pool
-            if (ticketPoolService.buyTicketToTask(ticket)) {
+            if (ticketPoolService.buyTicketToTask(ticket, message.getUserAuth().getPrincipal().toString())) {
                 String newToken = jwtService.generateToken(message.getUserAuth().getPrincipal().toString(), "Customer");
                 GlobalLogger.logInfo("Buy ticket completed successfully: ", message);
                 return ResponseEntity.status(HttpStatus.OK)

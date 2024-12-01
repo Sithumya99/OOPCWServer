@@ -125,7 +125,7 @@ public class MessageServerService {
         } catch (Exception e) {
             GlobalLogger.logError("Failed to execute message: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error handling request: " + e.getMessage());
+                    .body(message.writeResMsg("Error handling request: " + e.getMessage()));
         } finally {
             GlobalLogger.logInfo("Stop executing message: ", message);
         }

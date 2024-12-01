@@ -36,6 +36,8 @@ public class TicketPoolService {
     private volatile boolean isActive = true;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private final ReentrantLock poolLock = new ReentrantLock();
+    private long lastAddedTime = 0L;
+    private Map<String, Long> lastBoughtTime = new ConcurrentHashMap<>();
 
     public void stopSession() {
         isActive = false;
@@ -51,29 +53,31 @@ public class TicketPoolService {
      * @param ticket new ticket to add to ticket pool.
      */
     public void addTicketsToTask(Ticket ticket) {
-        Map<Ticket, Long> lastAddedTime = new ConcurrentHashMap<>();
         threadPoolTaskExecutor.submit(() -> {
             try {
                 while (isActive) {
                     GlobalLogger.logInfo("Start: Add ticket to pool process => ", ticket);
+                    //acquire the lock
                     poolLock.lock();
 
                     //check time elapsed since last ticket addition
                     long curTime = System.currentTimeMillis();
-                    long lastItemAddedTime = lastAddedTime.getOrDefault(ticket, 0L);
-                    long timeElapsed = curTime - lastItemAddedTime;
+                    long timeElapsed = curTime - lastAddedTime;
+                    GlobalLogger.logInfo("curtime: "+ curTime + "| lastadded: " + lastAddedTime, ticket);
 
                     if (timeElapsed < SessionConfiguration.getInstance().getTicketReleaseRate()) {
+                        poolLock.unlock();
                         long waitTime = SessionConfiguration.getInstance().getTicketReleaseRate() - timeElapsed;
                         GlobalLogger.logInfo("Waiting for ticket release rate to elapse: ", ticket);
                         Thread.sleep(waitTime);
+                        poolLock.lock();
                     }
 
                     //add ticket it ticket pool
                     GlobalUtil.getTicketpool().addTicket(ticket);
                     GlobalLogger.logInfo("Successfully added ticket: ", ticket);
                     ticketWebSocketHandler.sendTicketUpdate("TICKET_POOL_CHANGED");
-                    lastAddedTime.put(ticket, System.currentTimeMillis());
+                    lastAddedTime = System.currentTimeMillis();
                     break;
                 }
 
@@ -97,7 +101,7 @@ public class TicketPoolService {
      * @param ticket the customer wants to buy.
      * @return true if the ticket was purchased successfully, false otherwise.
      */
-    public boolean buyTicketToTask(Ticket ticket) {
+    public boolean buyTicketToTask(Ticket ticket, String username) {
         GlobalLogger.logInfo("Start: Buy ticket to task process => ", ticket);
         try {
             if (!isActive) {
@@ -107,6 +111,15 @@ public class TicketPoolService {
             return threadPoolTaskExecutor.submit(() -> {
                 poolLock.lock();
                 try {
+                    long curTime = System.currentTimeMillis();
+                    long lastBougtTime = lastBoughtTime.getOrDefault(username, 0L);
+                    long elapsedTime = curTime - lastBougtTime;
+
+                    if (elapsedTime < SessionConfiguration.getInstance().getCustomerRetrievalRate()) {
+                        return false;
+                    }
+
+                    lastBoughtTime.put(username, System.currentTimeMillis());
                     return removeTicket(ticket);
                 } finally {
                     poolLock.unlock();
