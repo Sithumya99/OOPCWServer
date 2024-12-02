@@ -59,11 +59,10 @@ public class MessageServer {
         if ("gettickets".equalsIgnoreCase(command)) {
             GlobalLogger.logInfo("Receive request "+ command, null);
             Authentication currentAuth = jwtAuthenticationService.authenticate(request);
-            GlobalLogger.logInfo("Start: Get tickets process => ", currentAuth.getPrincipal());
 
             if (currentAuth == null) {
                 GlobalLogger.logError("Unauthorized: ",
-                        new UserUnauthorizedException(currentAuth.getPrincipal().toString(), "no role"));
+                        new UserUnauthorizedException("no user", "no role"));
                 GlobalLogger.logInfo("Stop: Get tickets process ", null);
                 res.put("message", "Authorization failed.");
                 return CompletableFuture.completedFuture(
@@ -71,6 +70,7 @@ public class MessageServer {
                                 .body(res));
             }
 
+            GlobalLogger.logInfo("Start: Get tickets process => ", currentAuth.getPrincipal());
             if (SessionConfiguration.getInstance() == null) {
                 GlobalLogger.logWarning("Session not configured.");
                 GlobalLogger.logInfo("Stop: Get tickets process ", currentAuth.getPrincipal());
