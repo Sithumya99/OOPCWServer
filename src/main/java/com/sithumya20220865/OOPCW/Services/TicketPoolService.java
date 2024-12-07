@@ -33,7 +33,7 @@ public class TicketPoolService {
     @Autowired
     private TicketWebSocketHandler ticketWebSocketHandler;  //handle changes in ticket pool for websockets
 
-    private volatile boolean isActive = true;
+    private volatile boolean isActive = false;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private final ReentrantLock poolLock = new ReentrantLock();
     private long lastAddedTime = 0L;
