@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
@@ -37,6 +38,7 @@ public class TicketPoolService {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private final ReentrantLock poolLock = new ReentrantLock();
     private long lastAddedTime = 0L;
+    private final Condition notFull = poolLock.newCondition();
     private Map<String, Long> lastBoughtTime = new ConcurrentHashMap<>();
 
     public void stopSession() {
@@ -59,6 +61,12 @@ public class TicketPoolService {
                     GlobalLogger.logInfo("Start: Add ticket to pool process => ", ticket);
                     //acquire the lock
                     poolLock.lock();
+
+                    //check capacity
+                    while (GlobalUtil.getTicketpool().getTickets().remainingCapacity() == 0) {
+                        //wait until capacity available
+                        notFull.await();
+                    }
 
                     //check time elapsed since last ticket addition
                     long curTime = System.currentTimeMillis();
@@ -137,6 +145,9 @@ public class TicketPoolService {
         GlobalLogger.logInfo("Start: Purchase ticket process => ", ticket);
         try {
             if (GlobalUtil.getTicketpool().removeTicket(ticket)) {
+                //send not full signal
+                notFull.signal();
+
                 //set ticket to sold
                 ticket.setSold(true);
                 repositoryService.getTicketRepository().save(ticket);
